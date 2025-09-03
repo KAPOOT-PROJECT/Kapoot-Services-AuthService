@@ -1,0 +1,54 @@
+- register
+    - create user
+    - generateTokens
+
+- login
+    - check credentials
+        - logLoginAttempt => user && !password
+    - check isActive
+        - logLoginAttempt
+    - generateTokens
+    - logLoginAttempt
+
+- refreshToken
+    - find
+    - delete old token
+    - generateTokens
+
+- logout
+    - JWTAuth::invalidate
+    - delete:user:refreshTokens
+    - LoginHistory:logout
+
+- generateTokens
+    - fill customClaims
+    - create accessToken : JWTAuth::customClaims($customClaims)->fromUser($user);
+    - Generate refresh token and create record
+    - reponse
+        - 'access_token'
+        - 'token_type'
+        - 'expires_in'
+        - 'refresh_token'
+
+- getUserPermissions
+    - read or define $permissions
+    - return $permissions[$user->role]
+
+- logLoginAttempt
+    - LoginHistory::create
+        - user_id
+        - ip_address
+        - user_agent
+        - status
+        - failure_reason
+        - logged_in_at
+
+# ROUTES:
+    - prefix (auth):
+        - register
+        - login
+        - refresh
+    - middleware (auth:api) & prefix (auth):
+        - logout
+        - me
+        - validate
