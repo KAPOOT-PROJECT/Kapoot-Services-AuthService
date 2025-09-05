@@ -24,20 +24,20 @@ return new class extends Migration
                 \App\UserStatusEnum::ACTIVE->value,
                 \App\UserStatusEnum::INACTIVE->value,
                 \App\UserStatusEnum::SUSPENDED->value,
-                \App\UserStatusEnum::PENDING->value
+                \App\UserStatusEnum::PENDING->value,
             ])->default(\App\UserStatusEnum::PENDING->value);
             $table->enum('role', [
-                \App\UseRoleEnum::CUSTOMER->value,
-                \App\UseRoleEnum::ADMIN->value,
-                \App\UseRoleEnum::SUPERADMIN->value,
-                \App\UseRoleEnum::SERVICE_PROVIDER->value
-            ])->default(\App\UseRoleEnum::CUSTOMER->value);
+                \App\Enums\UseRoleEnum::CUSTOMER->value,
+                \App\Enums\UseRoleEnum::ADMIN->value,
+                \App\Enums\UseRoleEnum::SUPERADMIN->value,
+                \App\Enums\UseRoleEnum::SERVICE_PROVIDER->value,
+            ])->default(\App\Enums\UseRoleEnum::CUSTOMER->value);
             $table->json('metadata')->nullable();
             $table->enum('two_factor_auth', [
-                \App\TwoFactorAuthEnum::DISABLED->value,
-                \App\TwoFactorAuthEnum::MOBILE->value,
-                \App\TwoFactorAuthEnum::EMAIL->value
-            ])->default(\App\TwoFactorAuthEnum::DISABLED->value);
+                \App\Enums\TwoFactorAuthEnum::DISABLED->value,
+                \App\Enums\TwoFactorAuthEnum::MOBILE->value,
+                \App\Enums\TwoFactorAuthEnum::EMAIL->value,
+            ])->default(\App\Enums\TwoFactorAuthEnum::DISABLED->value);
             $table->softDeletes();
             $table->timestamps();
 

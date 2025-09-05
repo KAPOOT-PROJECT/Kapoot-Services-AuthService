@@ -3,13 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\UseRoleEnum;
+use App\UserStatusEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
-
-use App\UserStatusEnum;
-use App\UseRoleEnum;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -90,7 +89,6 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(LoginHistory::class);
     }
 
-
     public function isActive(): bool
     {
         return $this->status === UserStatusEnum::ACTIVE->value;
@@ -98,12 +96,13 @@ class User extends Authenticatable implements JWTSubject
 
     public function isVerified(): bool
     {
-        return !is_null($this->email_verified_at) || !is_null($this->mobile_verified_at);
+        return ! is_null($this->email_verified_at) || ! is_null($this->mobile_verified_at);
     }
 
     public function hasRole($role): bool
     {
         $roleValue = $role instanceof UseRoleEnum ? $role->value : $role;
+
         return $this->role === $roleValue;
     }
 

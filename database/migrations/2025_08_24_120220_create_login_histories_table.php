@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('ip_address', 45);
             $table->string('user_agent');
             $table->enum('status', [
-                \App\LoginHistoryStatusEnum::SUCCESS->value,
-                \App\LoginHistoryStatusEnum::FAILED->value
+                \App\Enums\LoginHistoryStatusEnum::SUCCESS->value,
+                \App\Enums\LoginHistoryStatusEnum::FAILED->value,
             ]);
             $table->string('failure_reason')->nullable();
             $table->timestamp('logged_in_at');

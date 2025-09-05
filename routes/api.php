@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -9,7 +8,7 @@ Route::prefix('auth')->group(function () {
     Route::post('verifyTwoAuthCode', [\App\Http\Controllers\AuthController::class, 'verifyTwoAuthCode']);
     Route::post('register', [\App\Http\Controllers\AuthController::class, 'register']);
     Route::post('refresh', [\App\Http\Controllers\AuthController::class, 'refresh']);
-Route::post('validate-token', [\App\Http\Controllers\AuthController::class, 'validateToken']);
+    Route::post('validate-token', [\App\Http\Controllers\AuthController::class, 'validateToken']);
 });
 
 Route::middleware('auth:api')->prefix('auth')->group(function () {

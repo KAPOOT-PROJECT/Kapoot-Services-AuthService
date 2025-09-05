@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Traits;
 
-class ResponseService
+trait ResponseTrait
 {
     public static function success($data = null, $message = 'عملیات با موفقیت انجام شد', $code = 200)
     {
