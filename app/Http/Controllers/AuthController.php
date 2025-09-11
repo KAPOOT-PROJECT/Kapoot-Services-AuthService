@@ -7,12 +7,12 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Traits\ResponseTrait;
+use App\Traits\{ResponseTrait, AuthCheckTrait};
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    use ResponseTrait;
+    use ResponseTrait, AuthCheckTrait;
 
     public function updateUser(\App\Http\Requests\UpdateUserRequest $request)
     {
@@ -182,5 +182,11 @@ class AuthController extends Controller
         $permissions = $this->authService->getUserPermissions($user);
 
         return self::success($permissions, 'Permissions retrieved successfully');
+    }
+
+    public function test(Request $request)
+    {
+        $user = $this->getAuthUser($request);
+        return self::success($user);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\LoginHistoryStatusEnum;
 use App\Enums\UseRoleEnum;
+use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthService
@@ -11,7 +12,7 @@ class AuthService
     public function updateUser($user, $data)
     {
         if (isset($data['current_password'])) {
-            if (! \Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
+            if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
                 throw new \Exception('رمز عبور فعلی اشتباه است');
             }
             unset($data['current_password']);
@@ -28,7 +29,7 @@ class AuthService
     public function verifyCode($email, $code, $type = null)
     {
         $user = \App\Models\User::where('email', $email)->first();
-        if (! $user) {
+        if (!$user) {
             $this->logLoginAttempt(null, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'user_not_found');
             throw new \Exception('کاربر یافت نشد');
         }
@@ -38,7 +39,7 @@ class AuthService
         }
         $cachedCode = \App\Services\verificationCodeService::get($dest);
 
-        if (! $cachedCode) {
+        if (!$cachedCode) {
             $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'no_2fa_code');
             throw new \Exception('کد وارد شده صحیح نیست یا منقضی شده است');
         }
@@ -59,7 +60,7 @@ class AuthService
             \App\Enums\TwoFactorAuthEnum::MOBILE->value,
             \App\Enums\TwoFactorAuthEnum::EMAIL->value,
         ];
-        if (! in_array($type, $validTypes, true)) {
+        if (!in_array($type, $validTypes, true)) {
             throw new \Exception('نوع احراز هویت دو مرحله‌ای نامعتبر است.');
         }
         if ($type === \App\Enums\TwoFactorAuthEnum::MOBILE->value && empty($user->mobile)) {
@@ -74,7 +75,7 @@ class AuthService
         return [
             'user' => $user,
             'type' => $type,
-            'پیام' => 'کد تایید به  '.$dest.' ارسال شد.',
+            'پیام' => 'کد تایید به  ' . $dest . ' ارسال شد.',
         ];
 
     }
@@ -89,7 +90,7 @@ class AuthService
     {
         try {
             $token = $token ?: (request()->bearerToken() ?? null);
-            if (! $token) {
+            if (!$token) {
                 return [
                     'valid' => false,
                     'reason' => 'No token provided',
@@ -97,14 +98,14 @@ class AuthService
             }
             $payload = \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->getPayload();
             $userId = $payload['id'] ?? null;
-            if (! $userId) {
+            if (!$userId) {
                 return [
                     'valid' => false,
                     'reason' => 'User id not found in token',
                 ];
             }
             $user = \App\Models\User::find($userId);
-            if (! $user) {
+            if (!$user) {
                 return [
                     'valid' => false,
                     'reason' => 'User not found',
@@ -146,13 +147,13 @@ class AuthService
             'email' => $data['email'],
         ];
         $user = \App\Models\User::where('email', $data['email'])->first();
-        if (! $user || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
             if ($user) {
                 $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'invalid_credentials');
             }
             throw new \Exception('Invalid credentials');
         }
-        if (! $user->isActive()) {
+        if (!$user->isActive()) {
             $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'inactive');
             throw new \Exception('User is not active');
         }
@@ -170,7 +171,7 @@ class AuthService
 
             return [
                 'user' => $user,
-                'پیام' => 'کد تایید به  '.$dest.' ارسال شد.',
+                'پیام' => 'کد تایید به  ' . $dest . ' ارسال شد.',
             ];
         }
     }
@@ -178,11 +179,11 @@ class AuthService
     public function refresh($refreshTokenStr)
     {
         $refreshToken = \App\Models\RefreshToken::where('token', $refreshTokenStr)->first();
-        if (! $refreshToken) {
+        if (!$refreshToken) {
             return null;
         }
         $user = $refreshToken->user;
-        if (! $user) {
+        if (!$user) {
             return null;
         }
         $refreshToken->delete();
@@ -216,16 +217,9 @@ class AuthService
         }
     }
 
-    public function generateTokens($user)
+    public function generateTokens(User $user)
     {
-
-        $customClaims = [
-            'id' => $user->id,
-            'email' => $user->email,
-            'role' => $user->role,
-            'status' => $user->status,
-        ];
-        $token = JWTAuth::customClaims($customClaims)->fromUser($user);
+        $token = JWTAuth::customClaims($user->getJWTCustomClaims())->fromUser($user);
 
         $refreshToken = \App\Models\RefreshToken::create([
             'user_id' => $user->id,
@@ -250,7 +244,7 @@ class AuthService
             JWTAuth::invalidate(JWTAuth::getToken());
             $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::SUCCESS, 'logged_out');
         } catch (\Exception $e) {
-            $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'logout_failed: '.$e->getMessage());
+            $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::FAILED, 'logout_failed: ' . $e->getMessage());
             throw $e;
         }
     }
