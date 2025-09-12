@@ -143,9 +143,6 @@ class AuthService
 
     public function login($data)
     {
-        $credentials = [
-            'email' => $data['email'],
-        ];
         $user = \App\Models\User::where('email', $data['email'])->first();
         if (!$user || !\Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
             if ($user) {
@@ -158,7 +155,7 @@ class AuthService
             throw new \Exception('User is not active');
         }
         if ($user->two_factor_auth === \App\Enums\TwoFactorAuthEnum::DISABLED) {
-            $tokens = $this->generateTokens($user, $data['password']);
+            $tokens = $this->generateTokens($user);
             $this->logLoginAttempt($user->id, request()->ip(), request()->userAgent(), LoginHistoryStatusEnum::SUCCESS);
 
             return [
