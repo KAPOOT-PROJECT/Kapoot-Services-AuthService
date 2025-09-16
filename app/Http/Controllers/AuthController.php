@@ -7,12 +7,20 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Traits\ResponseTrait;
+use App\Services\AuthService;
+use App\Services\EventPublisher;
+use App\Traits\{ResponseTrait, AuthCheckTrait};
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    use ResponseTrait;
+    use ResponseTrait, AuthCheckTrait;
+
+    public function __construct(
+        private readonly AuthService $authService,
+        private readonly EventPublisher $eventPublisher
+    ) {
+    }
 
     public function updateUser(\App\Http\Requests\UpdateUserRequest $request)
     {
@@ -84,8 +92,6 @@ class AuthController extends Controller
         }
     }
 
-    public function __construct(private readonly \App\Services\AuthService $authService) {}
-
     public function register(RegisterRequest $request)
     {
         try {
@@ -93,6 +99,14 @@ class AuthController extends Controller
 
             $data = $this->authService->registerUser($validated);
 
+            $user = $data['user'];
+            $this->eventPublisher->publishUserRegistered(
+                $user->id,
+                $user->email,
+                'guest', //TODO add to User Model & Migration
+                $user->mobile
+            );
+            
             return self::success([
                 'user' => new UserResource($data['user']),
                 'token' => $data['token'],
@@ -112,12 +126,12 @@ class AuthController extends Controller
                     'user' => new UserResource($data['user']),
                     'token' => $data['token'],
                 ], 'ورود با موفقیت انجام شد');
-            } else {
-                return self::success([
-                    'user' => new UserResource($data['user']),
-                    'message' => $data['پیام'] ?? 'کد تایید ارسال شد. لطفا کد را وارد کنید.',
-                ], 'کد تایید ارسال شد.');
             }
+
+            return self::success([
+                'user' => new UserResource($data['user']),
+                'message' => $data['پیام'] ?? 'کد تایید ارسال شد. لطفا کد را وارد کنید.',
+            ], 'کد تایید ارسال شد.');
         } catch (\Exception $e) {
             return self::error($e->getMessage(), 'Login failed', 401);
         }
@@ -139,7 +153,7 @@ class AuthController extends Controller
     {
         $refreshToken = $request->input('refresh_token');
         $data = $this->authService->refresh($refreshToken);
-        if (! $data || ! isset($data['user']) || ! isset($data['token'])) {
+        if (!$data || !isset($data['user']) || !isset($data['token'])) {
             return self::error(null, 'Refresh token not found or expired', 401);
         }
 
@@ -176,11 +190,17 @@ class AuthController extends Controller
 
     public function getUserPermissions(User $user)
     {
-        if (! $user) {
+        if (!$user) {
             return self::error(null, 'User not found', 404);
         }
         $permissions = $this->authService->getUserPermissions($user);
 
         return self::success($permissions, 'Permissions retrieved successfully');
+    }
+
+    public function test(Request $request)
+    {
+        $user = $this->getAuthUser($request);
+        return self::success($user);
     }
 }

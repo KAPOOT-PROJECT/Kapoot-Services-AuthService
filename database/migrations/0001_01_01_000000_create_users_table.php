@@ -1,5 +1,6 @@
 <?php
 
+use App\UserStatusEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -21,11 +22,11 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('mobile_verified_at')->nullable();
             $table->enum('status', [
-                \App\UserStatusEnum::ACTIVE->value,
-                \App\UserStatusEnum::INACTIVE->value,
-                \App\UserStatusEnum::SUSPENDED->value,
-                \App\UserStatusEnum::PENDING->value,
-            ])->default(\App\UserStatusEnum::PENDING->value);
+                \App\Enums\UserStatusEnum::ACTIVE->value,
+                \App\Enums\UserStatusEnum::INACTIVE->value,
+                \App\Enums\UserStatusEnum::SUSPENDED->value,
+                \App\Enums\UserStatusEnum::PENDING->value,
+            ])->default(\App\Enums\UserStatusEnum::PENDING->value);
             $table->enum('role', [
                 \App\Enums\UseRoleEnum::CUSTOMER->value,
                 \App\Enums\UseRoleEnum::ADMIN->value,
