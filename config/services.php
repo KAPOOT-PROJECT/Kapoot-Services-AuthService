@@ -46,7 +46,7 @@ return [
 
     'rabbitmq' => [
         'host' => 'localhost',
-        'port' => 5672,
+        'port' => 5673,
         'user' => 'guest',
         'password' => 'guest',
         'exchange' => 'kapoot_events',

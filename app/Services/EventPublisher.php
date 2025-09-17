@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -8,7 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class EventPublisher
 {
-    public const USER_REGITRED_EVENT = 'user_registered_event';
+    public const USER_REGISTERED_EVENT = 'user_registered_event';
+    public const USER_LOGGED_IN_EVENT = 'user_logged_in_event';
 
     private static ?AMQPStreamConnection $connection = null;
     private static ?AMQPChannel $channel = null;
@@ -44,8 +46,12 @@ class EventPublisher
     private static function getConnection(): AMQPStreamConnection
     {
         if (self::$connection === null || !self::$connection->isConnected()) {
-            //TODO error handling
-            self::$connection = new AMQPStreamConnection(self::$host, self::$port, self::$user, self::$password);
+            try {
+                self::$connection = new AMQPStreamConnection(self::$host, self::$port, self::$user, self::$password);
+            } catch (\Throwable $e) {
+                Log::error("RabbitMQ connection error: {$e->getMessage()}");
+                throw $e;
+            }
         }
 
         return self::$connection;
@@ -57,10 +63,34 @@ class EventPublisher
     private static function getChannel(): AMQPChannel
     {
         if (self::$channel === null || !self::$channel->is_open()) {
-            //TODO error handling
-            $connection = self::getConnection();
-            self::$channel = $connection->channel();
-            //TODO declare exchange and binding
+            try {
+                $connection = self::getConnection();
+                self::$channel = $connection->channel();
+
+                self::$channel->exchange_declare(
+                    self::$exchange,
+                    self::$exchangeType,
+                    false, 
+                    true,  
+                    false  
+                );
+                self::$channel->queue_declare(
+                    'customer_events', 
+                    false,               
+                    true,            
+                    false,                   
+                    false                   
+                );
+
+                self::$channel->queue_bind(
+                    'customer_events', 
+                    self::$exchange,     
+                    'customer_events'     
+                );
+            } catch (\Throwable $e) {
+                Log::error("RabbitMQ channel error: {$e->getMessage()}");
+                throw $e;
+            }
         }
 
         return self::$channel;
@@ -74,7 +104,7 @@ class EventPublisher
         $attempts = 0;
         $maxAttempts = 3;
 
-        while(true) {
+        while (true) {
             try {
                 $channel = self::getChannel();
                 $channel->basic_publish(
@@ -82,10 +112,10 @@ class EventPublisher
                     self::$exchange,
                     $routingKey
                 );
-
                 return true;
             } catch (\Throwable $e) {
                 Log::error("Error On publish AMQP: {$e->getMessage()}");
+                self::resetConnection();
             } finally {
                 $attempts++;
             }
@@ -106,7 +136,7 @@ class EventPublisher
                 self::$channel->close();
             }
         } catch (\Throwable $th) {
-            //TODO Logging
+            Log::error("Error closing RabbitMQ channel: {$th->getMessage()}");
         }
 
         try {
@@ -114,11 +144,11 @@ class EventPublisher
                 self::$connection->close();
             }
         } catch (\Throwable $th) {
-            //TODO Logging
+            Log::error("Error closing RabbitMQ connection: {$th->getMessage()}");
         }
 
         self::$connection = null;
-        self::$channel= null;
+        self::$channel = null;
     }
 
     /**
@@ -126,17 +156,38 @@ class EventPublisher
      */
     public function publishUserRegistered($userId, $email, $name, $phone): bool
     {
-        //TODO error handling
-        $data = [
-            'userId' => $userId,
-            'email' => $email,
-            'name' => $name,
-            'phone' => $phone,
-            'time' => date('Y-m-d H:i:s'), // replace with now() or Carbon Facade
-            'event' => self::USER_REGITRED_EVENT
-        ];
-
-        return $this->publish('user_registered', $data);
+        try {
+            $data = [
+                'userId' => $userId,
+                'email' => $email,
+                'name' => $name,
+                'phone' => $phone,
+                'time' => now(),
+                'event' => self::USER_REGISTERED_EVENT
+            ];
+            return $this->publish('customer_events', $data);
+        } catch (\Throwable $e) {
+            Log::error("Error publishing user_registered event: {$e->getMessage()}");
+            return false;
+        }
+    }
+    public function publishUserLoggedIn($userId, $email, $name, $phone , $ip): bool
+    {
+        try {
+            $data = [
+                'userId' => $userId,
+                'email' => $email,
+                'name' => $name,
+                'phone' => $phone,
+                'ip' => $ip,
+                'time' => now(),
+                'event' => self::USER_LOGGED_IN_EVENT
+            ];
+            return $this->publish('customer_events', $data);
+        } catch (\Throwable $e) {
+            Log::error("Error publishing user_logged_in event: {$e->getMessage()}");
+            return false;
+        }
     }
 
     /**
